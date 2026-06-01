@@ -529,7 +529,7 @@
     const radius = center - 18;
 
     let currentRotation = 0;
-    let alreadySpun = localStorage.getItem("luck_ruleta_usada") === "si";
+    let alreadySpun = localStorage.getItem("luck_ruleta_usada2") === "si";
 
     const colors = [
       "#8b0000",
@@ -657,7 +657,7 @@
       }
 
       alreadySpun = true;
-      localStorage.setItem("luck_ruleta_usada", "si");
+      localStorage.setItem("luck_ruleta_usada2", "si");
 
       spinBtn.disabled = true;
       spinBtn.textContent = "Girando...";
