@@ -402,10 +402,10 @@
       <h2>Tu premio es</h2>
       <div class="prize-name" id="prizeName">---</div>
 
-      <p class="claim-text" id="cargaMinimaText">
+      <p class="claim-text">
         Para activar este premio tenés que hacer una carga mínima de:
         <br>
-        <strong id="cargaMinima">---</strong>
+        <strong id="minimumLoad">---</strong>
       </p>
 
       <p class="claim-text">
@@ -476,12 +476,12 @@
 
   <script>
     const premios = [
-      { nombre: "3.500 FICHAS", porcentaje: 32, cargaMinima: "10.500" },
-      { nombre: "2.500 EXTRA", porcentaje: 32, cargaMinima: "5.000" },
-      { nombre: "5.000 EXTRA", porcentaje: 1, cargaMinima: "15.000" },
-      { nombre: "1.000 FICHAS", porcentaje: 32, cargaMinima: "3.000" },
-      { nombre: "2.000 FICHAS", porcentaje: 2, cargaMinima: "4.000" },
-      { nombre: "3.000 FICHAS", porcentaje: 1, cargaMinima: "10.000" }     
+      { nombre: "3.500 FICHAS", cargaMinima: "10.500", porcentaje: 32 },
+      { nombre: "2.500 EXTRA", cargaMinima: "5.000", porcentaje: 32 },
+      { nombre: "5.000 EXTRA", cargaMinima: "15.000", porcentaje: 1 },
+      { nombre: "1.000 FICHAS", cargaMinima: "3.000", porcentaje: 32 },
+      { nombre: "2.000 FICHAS", cargaMinima: "4.000", porcentaje: 2 },
+      { nombre: "3.000 FICHAS", cargaMinima: "10.000", porcentaje: 1 }     
     ];
 
     const canvas = document.getElementById("wheel");
@@ -491,7 +491,6 @@
     const centerSpin = document.getElementById("centerSpin");
     const resultCard = document.getElementById("resultCard");
     const prizeName = document.getElementById("prizeName");
-    const cargaMinima = document.getElementById("cargaMinima");
     const claimMessage = document.getElementById("claimMessage");
     const openChatBtn = document.getElementById("openChatBtn");
     const webchatGuide = document.getElementById("webchatGuide");
@@ -536,47 +535,7 @@
     const radius = center - 18;
 
     let currentRotation = 0;
-    const ruletaStorageKeys = ["luck_ruleta_usada", "luck_ruleta_usada2", "luck_ruleta_usada3"];
-    const ruletaCookieKey = "luck_ruleta_usada";
-
-    function leerLocalStorageSeguro(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function guardarLocalStorageSeguro(key, value) {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {}
-    }
-
-    function leerCookie(name) {
-      const prefix = name + "=";
-      const parts = document.cookie ? document.cookie.split(";") : [];
-      for (const part of parts) {
-        const value = part.trim();
-        if (value.startsWith(prefix)) return value.slice(prefix.length);
-      }
-      return null;
-    }
-
-    function intentoYaUsado() {
-      const usadoEnStorage = ruletaStorageKeys.some(
-        key => leerLocalStorageSeguro(key) === "si"
-      );
-      const usadoEnCookie = leerCookie(ruletaCookieKey) === "si";
-      return usadoEnStorage || usadoEnCookie;
-    }
-
-    function marcarIntentoUsado() {
-      ruletaStorageKeys.forEach(key => guardarLocalStorageSeguro(key, "si"));
-      document.cookie = `${ruletaCookieKey}=si; Max-Age=31536000; Path=/; SameSite=Lax`;
-    }
-
-    let alreadySpun = intentoYaUsado();
+    let alreadySpun = localStorage.getItem("luck_ruleta_usada2") === "si" || localStorage.getItem("luck_ruleta_usada3") === "si";
 
     const colors = [
       "#8b0000",
@@ -698,14 +657,13 @@
     }
 
     function spinWheel() {
-      if (alreadySpun || intentoYaUsado()) {
-        alreadySpun = true;
+      if (alreadySpun) {
         bloquearRuletaUsada();
         return;
       }
 
       alreadySpun = true;
-      marcarIntentoUsado();
+      localStorage.setItem("luck_ruleta_usada2", "si");
 
       spinBtn.disabled = true;
       spinBtn.textContent = "Girando...";
@@ -721,6 +679,7 @@
       arrowToChat.style.display = "none";
 
       const selectedPrize = elegirPremioPorPorcentaje();
+      localStorage.setItem("luck_ruleta_premio2", selectedPrize.nombre);
       const selectedIndex = premios.findIndex(p => p.nombre === selectedPrize.nombre);
 
       const total = premios.length;
@@ -741,9 +700,9 @@
       }, 5200);
     }
 
-    function mostrarResultado(premio) {
+    function mostrarResultado(premio, animar = true) {
       prizeName.textContent = premio.nombre;
-      cargaMinima.textContent = `$${premio.cargaMinima}`;
+      document.getElementById("minimumLoad").textContent = `$${premio.cargaMinima}`;
       claimMessage.textContent = `QUIERO RECLAMAR ${premio.nombre} - CARGA $${premio.cargaMinima}`;
 
       resultCard.style.display = "block";
@@ -752,12 +711,14 @@
       centerSpin.textContent = "Usado";
       centerSpin.style.opacity = "0.75";
 
-      lanzarConfetti();
+      if (animar) {
+        lanzarConfetti();
 
-      resultCard.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
+        resultCard.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+      }
     }
 
     function abrirWebchat() {
@@ -832,9 +793,14 @@
 
     drawWheel();
 
-    if (intentoYaUsado()) {
-      alreadySpun = true;
+    if (alreadySpun) {
       bloquearRuletaUsada();
+
+      const savedPrize = premios.find(p => p.nombre === localStorage.getItem("luck_ruleta_premio2"));
+      if (savedPrize) {
+        if (usedCard) usedCard.style.display = "none";
+        mostrarResultado(savedPrize, false);
+      }
     }
   </script>
 </body>
